@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { QRCodeCanvas } from 'qrcode.react'
+import './AdminDashboard.css'
 
 function AdminDashboard() {
   const navigate = useNavigate()
@@ -12,11 +13,17 @@ function AdminDashboard() {
   const qrCanvases = useRef(new Map())
   const [editingGuestId, setEditingGuestId] = useState(null)
   const [editingGuestName, setEditingGuestName] = useState('')
+  const [copyFeedback, setCopyFeedback] = useState(null)
+  const copyFeedbackTimeout = useRef(null)
 
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
   const [savingGuest, setSavingGuest] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => () => {
+    window.clearTimeout(copyFeedbackTimeout.current)
+  }, [])
 
   // Check authentication and load guests
   useEffect(() => {
@@ -173,6 +180,27 @@ function AdminDashboard() {
     link.click()
   }
 
+  async function handleCopyLink(guest, invitationUrl) {
+    window.clearTimeout(copyFeedbackTimeout.current)
+
+    try {
+      await navigator.clipboard.writeText(invitationUrl)
+      setCopyFeedback({
+        guestId: guest.id,
+        message: 'Link copied!',
+      })
+    } catch {
+      setCopyFeedback({
+        guestId: guest.id,
+        message: 'Could not copy link. Please copy the URL above.',
+      })
+    }
+
+    copyFeedbackTimeout.current = window.setTimeout(() => {
+      setCopyFeedback(null)
+    }, 3000)
+  }
+
   // Logout
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -192,55 +220,54 @@ function AdminDashboard() {
   ).length
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px' }}>
+    <main className="admin-dashboard">
+      <header className="admin-header">
+        <div>
+          <p className="admin-eyebrow">WEDDING RSVP</p>
+          <h1>Guest Management</h1>
+          <p className="admin-subtitle">A little overview of your celebration.</p>
+        </div>
 
-      <header style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '32px'
-      }}>
-        <h1>Guest Management</h1>
-
-        <button onClick={handleLogout}>
+        <button className="admin-button admin-button-secondary" onClick={handleLogout}>
           Logout
         </button>
       </header>
 
       {/* RSVP Statistics */}
-      <div style={{
-        display: 'flex',
-        gap: '16px',
-        flexWrap: 'wrap',
-        marginBottom: '32px'
-      }}>
-        <div>
+      <section className="admin-stats" aria-label="RSVP statistics">
+        <article className="admin-stat-card admin-stat-total">
           <h2>{guests.length}</h2>
           <p>Total Guests</p>
-        </div>
+        </article>
 
-        <div>
+        <article className="admin-stat-card admin-stat-attending">
           <h2>{attending}</h2>
           <p>Attending</p>
-        </div>
+        </article>
 
-        <div>
+        <article className="admin-stat-card admin-stat-declined">
           <h2>{declined}</h2>
           <p>Declined</p>
-        </div>
+        </article>
 
-        <div>
+        <article className="admin-stat-card admin-stat-pending">
           <h2>{pending}</h2>
           <p>Pending</p>
-        </div>
-      </div>
+        </article>
+      </section>
 
       {/* Add Guest Form */}
-      <section style={{ marginBottom: '32px' }}>
-        <h2>Add Guest</h2>
+      <section className="admin-panel admin-add-guest">
+        <div className="admin-section-heading">
+          <div>
+            <p className="admin-eyebrow">YOUR GUEST LIST</p>
+            <h2>Add a guest</h2>
+          </div>
+        </div>
 
         <form onSubmit={handleAddGuest}>
           <input
+            className="admin-input"
             type="text"
             placeholder="Enter guest name"
             value={guestName}
@@ -248,30 +275,35 @@ function AdminDashboard() {
             required
           />
 
-          <button type="submit" disabled={adding}>
+          <button className="admin-button admin-button-primary" type="submit" disabled={adding}>
             {adding ? 'Adding...' : 'Add Guest'}
           </button>
         </form>
       </section>
 
       {error && (
-        <p style={{ color: 'red' }}>{error}</p>
+        <p className="admin-error" role="alert">{error}</p>
       )}
 
       {/* Guest List */}
-      <section>
-        <h2>Guest List</h2>
+      <section className="admin-panel admin-guest-list">
+        <div className="admin-section-heading">
+          <div>
+            <p className="admin-eyebrow">EVERYONE IN ONE PLACE</p>
+            <h2>Guest list</h2>
+          </div>
+          <span className="admin-guest-count">
+            {guests.length} {guests.length === 1 ? 'guest' : 'guests'}
+          </span>
+        </div>
 
         {loading ? (
-          <p>Loading guests...</p>
+          <p className="admin-empty-state">Loading guests...</p>
         ) : guests.length === 0 ? (
-          <p>No guests added yet.</p>
+          <p className="admin-empty-state">No guests added yet. Add your first guest above to get started.</p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse'
-            }}>
+          <div className="admin-table-scroll">
+            <table className="admin-table">
               <thead>
                 <tr>
                   <th align="left">Name</th>
@@ -283,34 +315,46 @@ function AdminDashboard() {
               </thead>
 
               <tbody>
-                {guests.map((guest) => (
+                {guests.map((guest) => {
+                  const invitationUrl = `${window.location.origin}/rsvp/${guest.token}`
+
+                  return (
                   <tr key={guest.id}>
                     <td>
                       {editingGuestId === guest.id ? (
                         <input
+                          className="admin-input admin-name-input"
                           type="text"
                           value={editingGuestName}
                           onChange={(e) => setEditingGuestName(e.target.value)}
                           aria-label={`Edit name for ${guest.name}`}
                           autoFocus
                         />
-                      ) : guest.name}
+                      ) : <span className="admin-guest-name">{guest.name}</span>}
                     </td>
 
                     <td>
-                      {guest.will_attend === true
-                        ? 'Attending'
-                        : guest.will_attend === false
-                          ? 'Declined'
-                          : 'Pending'}
+                      <span className={`admin-status ${
+                        guest.will_attend === true
+                          ? 'admin-status-attending'
+                          : guest.will_attend === false
+                            ? 'admin-status-declined'
+                            : 'admin-status-pending'
+                      }`}>
+                        {guest.will_attend === true
+                          ? 'Attending'
+                          : guest.will_attend === false
+                            ? 'Declined'
+                            : 'Pending'}
+                      </span>
                     </td>
 
                     <td>
-                      <code>{guest.token}</code>
+                      <code className="admin-token">{guest.token}</code>
                     </td>
 
                     <td>
-                      <div>
+                      <div className="admin-qr-content">
                         <QRCodeCanvas
                           ref={(canvas) => {
                             if (canvas) {
@@ -319,29 +363,55 @@ function AdminDashboard() {
                               qrCanvases.current.delete(guest.id)
                             }
                           }}
-                          value={`${window.location.origin}/rsvp/${guest.token}`}
+                          value={invitationUrl}
                           size={150}
                           level="H"
                           includeMargin
                         />
-                        <div>
-                          <button onClick={() => handleDownloadQr(guest)}>
+                        <div className="admin-invitation-url">
+                          <a href={invitationUrl}>{invitationUrl}</a>
+                        </div>
+                        <div className="admin-qr-actions">
+                          <button
+                            className="admin-button admin-button-primary"
+                            type="button"
+                            onClick={() => handleCopyLink(guest, invitationUrl)}
+                          >
+                            Copy Link
+                          </button>
+                          <button
+                            className="admin-button admin-button-secondary"
+                            type="button"
+                            onClick={() => handleDownloadQr(guest)}
+                          >
                             Download QR
                           </button>
                         </div>
+                        {copyFeedback?.guestId === guest.id && (
+                          <p className={`admin-copy-feedback ${
+                            copyFeedback.message === 'Link copied!'
+                              ? 'admin-copy-success'
+                              : 'admin-copy-error'
+                          }`} aria-live="polite">{copyFeedback.message}</p>
+                        )}
                       </div>
                     </td>
 
                     <td>
+                      <div className="admin-row-actions">
                       {editingGuestId === guest.id ? (
                         <>
                           <button
+                            className="admin-button admin-button-primary"
+                            type="button"
                             onClick={() => handleSaveGuest(guest)}
                             disabled={savingGuest}
                           >
                             Save
                           </button>
                           <button
+                            className="admin-button admin-button-secondary"
+                            type="button"
                             onClick={handleCancelEdit}
                             disabled={savingGuest}
                           >
@@ -349,26 +419,34 @@ function AdminDashboard() {
                           </button>
                         </>
                       ) : (
-                        <button onClick={() => handleEditGuest(guest)}>
+                        <button
+                          className="admin-button admin-button-secondary"
+                          type="button"
+                          onClick={() => handleEditGuest(guest)}
+                        >
                           Edit
                         </button>
                       )}
                       <button
+                        className="admin-button admin-button-danger"
+                        type="button"
                         onClick={() => handleDeleteGuest(guest.id)}
                         disabled={editingGuestId === guest.id && savingGuest}
                       >
                         Delete
                       </button>
+                      </div>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
       </section>
 
-    </div>
+    </main>
   )
 }
 
