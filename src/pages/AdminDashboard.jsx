@@ -10,9 +10,12 @@ function AdminDashboard() {
   const [guests, setGuests] = useState([])
   const [guestName, setGuestName] = useState('')
   const qrCanvases = useRef(new Map())
+  const [editingGuestId, setEditingGuestId] = useState(null)
+  const [editingGuestName, setEditingGuestName] = useState('')
 
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
+  const [savingGuest, setSavingGuest] = useState(false)
   const [error, setError] = useState('')
 
   // Check authentication and load guests
@@ -85,6 +88,51 @@ function AdminDashboard() {
     }
 
     setAdding(false)
+  }
+
+  function handleEditGuest(guest) {
+    setError('')
+    setEditingGuestId(guest.id)
+    setEditingGuestName(guest.name)
+  }
+
+  async function handleSaveGuest(guest) {
+    const name = editingGuestName.trim()
+    if (!name) {
+      setError('Guest name cannot be empty.')
+      return
+    }
+
+    setSavingGuest(true)
+    setError('')
+
+    const { error } = await supabase
+      .from('guests')
+      .update({ name })
+      .eq('id', guest.id)
+
+    if (error) {
+      setError(error.message)
+      setSavingGuest(false)
+      return
+    }
+
+    setGuests((current) =>
+      current.map((currentGuest) =>
+        currentGuest.id === guest.id
+          ? { ...currentGuest, name }
+          : currentGuest
+      )
+    )
+    setEditingGuestId(null)
+    setEditingGuestName('')
+    setSavingGuest(false)
+  }
+
+  function handleCancelEdit() {
+    setEditingGuestId(null)
+    setEditingGuestName('')
+    setError('')
   }
 
   // Delete a guest
@@ -237,7 +285,17 @@ function AdminDashboard() {
               <tbody>
                 {guests.map((guest) => (
                   <tr key={guest.id}>
-                    <td>{guest.name}</td>
+                    <td>
+                      {editingGuestId === guest.id ? (
+                        <input
+                          type="text"
+                          value={editingGuestName}
+                          onChange={(e) => setEditingGuestName(e.target.value)}
+                          aria-label={`Edit name for ${guest.name}`}
+                          autoFocus
+                        />
+                      ) : guest.name}
+                    </td>
 
                     <td>
                       {guest.will_attend === true
@@ -275,8 +333,29 @@ function AdminDashboard() {
                     </td>
 
                     <td>
+                      {editingGuestId === guest.id ? (
+                        <>
+                          <button
+                            onClick={() => handleSaveGuest(guest)}
+                            disabled={savingGuest}
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={savingGuest}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleEditGuest(guest)}>
+                          Edit
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteGuest(guest.id)}
+                        disabled={editingGuestId === guest.id && savingGuest}
                       >
                         Delete
                       </button>
