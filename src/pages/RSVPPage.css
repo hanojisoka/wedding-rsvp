@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
-  background: #f5f0e8;
+  background: #74866b;
   color: #51483e;
   font-family: Georgia, serif;
 }
@@ -76,6 +76,53 @@
 .rsvp-greeting {
   font-size: 24px;
   margin-bottom: 16px;
+}
+
+.rsvp-colors {
+  margin: 40px 0 0;
+  padding-top: 24px;
+  border-top: 1px solid #eee5d9;
+}
+
+.rsvp-colors-title {
+  margin: 0 0 20px;
+  color: #8d7357;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: italic;
+}
+
+.rsvp-color-list {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rsvp-color-item {
+  display: flex;
+  align-items: center;
+}
+
+.rsvp-color-swatch {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #d8cbb9;
+  border-radius: 50%;
+}
+
+.rsvp-color-swatch--white {
+  background-color: #ffffff;
+}
+
+.rsvp-color-swatch--cream {
+  background-color: #f3ebdd;
+}
+
+.rsvp-color-swatch--light-yellow {
+  background-color: #fff3b0;
 }
 
 .rsvp-message {

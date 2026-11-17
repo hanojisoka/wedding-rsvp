@@ -222,11 +222,6 @@ function RSVPPage() {
               Dear {guest.name},
             </p>
 
-            <p className="rsvp-message">
-              We would love to celebrate this special
-              day with you!
-            </p>
-
             {guest.willAttend !== null && !editing ? (
               <div className="rsvp-confirmation">
 
@@ -281,9 +276,34 @@ function RSVPPage() {
               <p className="rsvp-error">{error}</p>
             )}
 
-            <div className="rsvp-footer">
-              <p>We hope to celebrate with you!</p>
-            </div>
+            <section className="rsvp-colors" aria-labelledby="rsvp-colors-title">
+              <h2 className="rsvp-colors-title" id="rsvp-colors-title">
+                Our Wedding Colors
+              </h2>
+              <ul className="rsvp-color-list">
+                <li className="rsvp-color-item">
+                  <span
+                    className="rsvp-color-swatch rsvp-color-swatch--white"
+                    role="img"
+                    aria-label="White"
+                  />
+                </li>
+                <li className="rsvp-color-item">
+                  <span
+                    className="rsvp-color-swatch rsvp-color-swatch--cream"
+                    role="img"
+                    aria-label="Cream"
+                  />
+                </li>
+                <li className="rsvp-color-item">
+                  <span
+                    className="rsvp-color-swatch rsvp-color-swatch--light-yellow"
+                    role="img"
+                    aria-label="Light Yellow"
+                  />
+                </li>
+              </ul>
+            </section>
           </>
         )}
 
