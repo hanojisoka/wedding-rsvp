@@ -11,6 +11,7 @@
 }
 
 .rsvp-card {
+  box-sizing: border-box;
   width: 100%;
   max-width: 520px;
   padding: 48px 32px;
@@ -18,6 +19,39 @@
   background: #fffdf9;
   border: 1px solid #e5d9c9;
   box-shadow: 0 10px 40px rgba(70, 55, 40, 0.08);
+}
+
+.rsvp-video-container {
+  width: 100%;
+  min-width: 0;
+  margin: 0 auto 28px;
+}
+
+.rsvp-video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+
+.rsvp-video-fallback {
+  margin: 0 0 28px;
+  color: #81776b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rsvp-music-prompt,
+.rsvp-music-error {
+  margin: 0 0 28px;
+  color: #81776b;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rsvp-music-prompt {
+  opacity: 0.85;
 }
 
 .rsvp-subtitle {

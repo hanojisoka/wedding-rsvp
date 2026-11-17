@@ -1,19 +1,95 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import './RSVPPage.css'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
+function InvitationVideo() {
+  const [videoAvailable, setVideoAvailable] = useState(true)
+
+  if (!videoAvailable) {
+    return (
+      <p className="rsvp-video-fallback" role="status">
+        The invitation video is unavailable right now.
+      </p>
+    )
+  }
+
+  return (
+    <div className="rsvp-video-container">
+      <video
+        className="rsvp-video"
+        src="/videos/wedding-invitation.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="metadata"
+        onError={() => setVideoAvailable(false)}
+      />
+    </div>
+  )
+}
+
 function RSVPPage() {
   const { token } = useParams()
+  const audioRef = useRef(null)
 
   const [guest, setGuest] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
+  const [musicNeedsInteraction, setMusicNeedsInteraction] = useState(false)
+  const [musicError, setMusicError] = useState('')
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return undefined
+
+    let cancelled = false
+    let listeningForInteraction = false
+
+    function removeInteractionListeners() {
+      if (!listeningForInteraction) return
+      window.removeEventListener('click', tryPlayMusic)
+      window.removeEventListener('touchstart', tryPlayMusic)
+      window.removeEventListener('keydown', tryPlayMusic)
+      listeningForInteraction = false
+    }
+
+    function listenForInteraction() {
+      if (listeningForInteraction) return
+      window.addEventListener('click', tryPlayMusic)
+      window.addEventListener('touchstart', tryPlayMusic)
+      window.addEventListener('keydown', tryPlayMusic)
+      listeningForInteraction = true
+    }
+
+    async function tryPlayMusic() {
+      try {
+        await audio.play()
+        if (cancelled) return
+        setMusicNeedsInteraction(false)
+        setMusicError('')
+        removeInteractionListeners()
+      } catch {
+        if (!cancelled) {
+          setMusicNeedsInteraction(true)
+          listenForInteraction()
+        }
+      }
+    }
+
+    void tryPlayMusic()
+
+    return () => {
+      cancelled = true
+      removeInteractionListeners()
+    }
+  }, [])
 
   // Retrieve guest information
   useEffect(() => {
@@ -97,112 +173,119 @@ function RSVPPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="rsvp-page">
-        <div className="rsvp-card">
-          <p>Loading your invitation...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!guest) {
-    return (
-      <div className="rsvp-page">
-        <div className="rsvp-card">
-          <h1>Invitation Not Found</h1>
-          <p>
-            Sorry, we couldn't find your invitation.
-            Please check your QR code or contact us.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="rsvp-page">
       <div className="rsvp-card">
 
-        <p className="rsvp-subtitle">
-          YOU'RE INVITED
-        </p>
+        <InvitationVideo />
 
-        <div className="rsvp-divider">
-          ✦
-        </div>
+        <audio
+          ref={audioRef}
+          src="/audio/wedding-music.mp3"
+          loop
+          preload="none"
+          onError={() => {
+            setMusicNeedsInteraction(false)
+            setMusicError('Wedding music could not be loaded.')
+          }}
+        />
+        {musicNeedsInteraction && !musicError && (
+          <p className="rsvp-music-prompt" role="status">
+            Tap anywhere to enable music ♫
+          </p>
+        )}
+        {musicError && (
+          <p className="rsvp-music-error" role="status">{musicError}</p>
+        )}
 
-        <h1 className="rsvp-title">
-          Wedding Invitation
-        </h1>
-
-        <p className="rsvp-greeting">
-          Dear {guest.name},
-        </p>
-
-        <p className="rsvp-message">
-          We would love to celebrate this special
-          day with you!
-        </p>
-
-        {guest.willAttend !== null && !editing ? (
-          <div className="rsvp-confirmation">
-
-            <h2>
-              {guest.willAttend
-                ? "We're excited to see you!"
-                : "Thank you for letting us know."}
-            </h2>
-
+        {loading ? (
+          <p>Loading your invitation...</p>
+        ) : !guest ? (
+          <>
+            <h1>Invitation Not Found</h1>
             <p>
-              Your response:
-              <strong>
-                {guest.willAttend
-                  ? " Yes, I'll attend."
-                  : " Sorry, I can't make it."}
-              </strong>
+              Sorry, we couldn't find your invitation.
+              Please check your QR code or contact us.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="rsvp-subtitle">
+              YOU'RE INVITED
             </p>
 
-            <button
-              className="rsvp-secondary-button"
-              onClick={() => setEditing(true)}
-            >
-              Change My Response
-            </button>
+            <div className="rsvp-divider">
+              ✦
+            </div>
 
-          </div>
-        ) : (
-          <div className="rsvp-form">
+            <p className="rsvp-greeting">
+              Dear {guest.name},
+            </p>
 
-            <h2>Will you be joining us?</h2>
+            <p className="rsvp-message">
+              We would love to celebrate this special
+              day with you!
+            </p>
 
-            <button
-              className="rsvp-yes-button"
-              disabled={submitting}
-              onClick={() => handleRSVP(true)}
-            >
-              {submitting ? 'Saving...' : "Yes, I'll be there!"}
-            </button>
+            {guest.willAttend !== null && !editing ? (
+              <div className="rsvp-confirmation">
 
-            <button
-              className="rsvp-no-button"
-              disabled={submitting}
-              onClick={() => handleRSVP(false)}
-            >
-              {submitting ? 'Saving...' : "Sorry, I can't make it"}
-            </button>
+                <h2>
+                  {guest.willAttend
+                    ? "We're excited to see you!"
+                    : "Thank you for letting us know."}
+                </h2>
 
-          </div>
+                <p>
+                  Your response:
+                  <strong>
+                    {guest.willAttend
+                      ? " Yes, I'll attend."
+                      : " Sorry, I can't make it."}
+                  </strong>
+                </p>
+
+                <button
+                  className="rsvp-secondary-button"
+                  onClick={() => setEditing(true)}
+                >
+                  Change My Response
+                </button>
+
+              </div>
+            ) : (
+              <div className="rsvp-form">
+
+                <h2>Will you be joining us?</h2>
+
+                <button
+                  className="rsvp-yes-button"
+                  disabled={submitting}
+                  onClick={() => handleRSVP(true)}
+                >
+                  {submitting ? 'Saving...' : "Yes, I'll be there!"}
+                </button>
+
+                <button
+                  className="rsvp-no-button"
+                  disabled={submitting}
+                  onClick={() => handleRSVP(false)}
+                >
+                  {submitting ? 'Saving...' : "Sorry, I can't make it"}
+                </button>
+
+              </div>
+            )}
+
+            {error && (
+              <p className="rsvp-error">{error}</p>
+            )}
+
+            <div className="rsvp-footer">
+              <p>We hope to celebrate with you!</p>
+            </div>
+          </>
         )}
-
-        {error && (
-          <p className="rsvp-error">{error}</p>
-        )}
-
-        <div className="rsvp-footer">
-          <p>We hope to celebrate with you!</p>
-        </div>
 
       </div>
     </div>
